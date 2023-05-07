@@ -51,6 +51,8 @@ func ReadConfig(fileName string) (*Config, error) {
 	return &config, nil
 }
 
+// test
+
 // Print print config details
 func (c *Config) Print() {
 	fmt.Printf("%s\nSchema: %s\nPort: %d\nHealth Check: %v\nLocation:\n",
