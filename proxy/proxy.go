@@ -83,14 +83,15 @@ func NewHTTPProxy(targetHosts []string, algorithm string) (*HTTPProxy, error) {
 	hostMap := make(map[string]*httputil.ReverseProxy)
 	alive := make(map[string]bool)
 
-	for _, targetHost := range targetHosts {
-		url, err := url.Parse(targetHost)
+	for i, targetHost := range targetHosts {
+		log.Printf("TargetHost[%d]: %s\n", i, targetHost)
+		parseUrl, err := url.Parse(targetHost)
 		if err != nil {
 			log.Printf("url.Parse Error: %s\n", err)
 			return nil, err
 		}
 		// create a reverse proxy
-		proxy := httputil.NewSingleHostReverseProxy(url)
+		proxy := httputil.NewSingleHostReverseProxy(parseUrl)
 		// rewrite director function, add header
 		originDirector := proxy.Director
 		proxy.Director = func(req *http.Request) {
@@ -99,7 +100,7 @@ func NewHTTPProxy(targetHosts []string, algorithm string) (*HTTPProxy, error) {
 			req.Header.Set(XRealIP, GetClientIP(req))
 		}
 
-		host := GetHost(url)
+		host := GetHost(parseUrl)
 		alive[host] = true    // mark current host is alive
 		hostMap[host] = proxy // add mapping
 		hosts = append(hosts, host)
