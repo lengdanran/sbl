@@ -36,7 +36,7 @@ type RoundRobin struct {
 }
 
 // NewRoundRobin will create RoundRobin balancer.
-func NewRoundRobin(hosts []string) Balancer {
+func NewRoundRobin(hosts []string, _ []int) Balancer {
 	return &RoundRobin{
 		BaseBalancer: BaseBalancer{
 			hosts: hosts,

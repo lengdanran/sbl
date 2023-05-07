@@ -32,9 +32,10 @@ type Config struct {
 
 // Location routing details of balancer
 type Location struct {
-	Pattern     string   `yaml:"pattern"`
-	ProxyPass   []string `yaml:"proxy_pass"`
-	BalanceMode string   `yaml:"balance_mode"` // name of balancer
+	Pattern         string   `yaml:"pattern"`
+	ProxyPass       []string `yaml:"proxy_pass"`
+	ProxyPassWeight []int    `yaml:"proxy_pass_weight"`
+	BalanceMode     string   `yaml:"balance_mode"` // name of balancer
 }
 
 // ReadConfig read configuration from `fileName` file
@@ -58,8 +59,8 @@ func (c *Config) Print() {
 	fmt.Printf("%s\nSchema: %s\nPort: %d\nHealth Check: %v\nLocation:\n",
 		ascii, c.Schema, c.Port, c.HealthCheck)
 	for _, l := range c.Location {
-		fmt.Printf("\tRoute: %s\n\tProxy Pass: %s\n\tMode: %s\n\n",
-			l.Pattern, l.ProxyPass, l.BalanceMode)
+		fmt.Printf("\tRoute: %s\n\tProxy Pass: %s\n\tProxy Pass Weight: %d\n\tMode: %s\n\n",
+			l.Pattern, l.ProxyPass, l.ProxyPassWeight, l.BalanceMode)
 	}
 }
 

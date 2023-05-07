@@ -26,10 +26,11 @@ var ConnectionTimeout = 3 * time.Second
 
 // HTTPProxy refers to a reverse proxy in the balancer
 type HTTPProxy struct {
-	hostMap      map[string]*httputil.ReverseProxy
-	lb           balancer.Balancer
-	sync.RWMutex // protect alive
-	alive        map[string]bool
+	hostMap       map[string]*httputil.ReverseProxy
+	hostWeightMap map[string]int
+	lb            balancer.Balancer
+	sync.RWMutex  // protect alive
+	alive         map[string]bool
 }
 
 // GetClientIP get client IP
@@ -78,12 +79,13 @@ func IsBackendAlive(host string) bool {
 }
 
 // NewHTTPProxy create new reverse proxy with url and balancer algorithm
-func NewHTTPProxy(targetHosts []string, algorithm string) (*HTTPProxy, error) {
+func NewHTTPProxy(targetHosts []string, algorithm string, hostsWeights []int) (*HTTPProxy, error) {
 	hosts := make([]string, 0)
 	hostMap := make(map[string]*httputil.ReverseProxy)
+	hostWeightMap := make(map[string]int)
 	alive := make(map[string]bool)
 
-	for _, targetHost := range targetHosts {
+	for i, targetHost := range targetHosts {
 		// log.Printf("TargetHost[%d]: %s\n", i, targetHost)
 		parseUrl, err := url.Parse(targetHost)
 		if err != nil {
@@ -104,17 +106,25 @@ func NewHTTPProxy(targetHosts []string, algorithm string) (*HTTPProxy, error) {
 		alive[host] = true    // mark current host is alive
 		hostMap[host] = proxy // add mapping
 		hosts = append(hosts, host)
+		if len(hostsWeights) == len(hosts) {
+			hostWeightMap[host] = hostsWeights[i]
+		}
 	}
 	// build a load balancer instance
-	lb, err := balancer.Build(algorithm, hosts)
+	lb, err := balancer.Build(algorithm, hosts, hostsWeights)
 	if err != nil {
 		return nil, err
 	}
+	if lb == nil {
+		log.Printf("Load balancer is nil, please check the configuration....")
+		return nil, nil
+	}
 
 	return &HTTPProxy{
-		hostMap: hostMap,
-		lb:      lb,
-		alive:   alive,
+		hostMap:       hostMap,
+		hostWeightMap: hostWeightMap,
+		lb:            lb,
+		alive:         alive,
 	}, nil
 }
 
@@ -175,7 +185,7 @@ func (h *HTTPProxy) healthCheck(host string, interval uint) {
 			log.Printf("Site reachable, add %s to load balancer.", host)
 
 			h.SetAlive(host, true)
-			h.lb.Add(host)
+			h.lb.Add(host, h.hostWeightMap[host])
 		}
 	}
 }

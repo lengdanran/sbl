@@ -26,3 +26,15 @@ location: # route matching for reverse proxy
       - "http://192.168.1.3"
       - "http://192.168.1.4"
     balance_mode: round-robin
+  - pattern: /weighted-round-robin
+    proxy_pass:
+      - "http://192.168.1.1"
+      - "http://192.168.1.2"
+      - "http://192.168.1.3"
+      - "http://192.168.1.4"
+    proxy_pass_weight:
+      - 2
+      - 1
+      - 1
+      - 1
+    balance_mode: weighted-round-robin

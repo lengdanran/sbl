@@ -37,7 +37,7 @@ type Random struct {
 }
 
 // NewRandom will return a random balancer
-func NewRandom(hosts []string) Balancer {
+func NewRandom(hosts []string, _ []int) Balancer {
 	return &Random{
 		BaseBalancer: BaseBalancer{
 			hosts: hosts,

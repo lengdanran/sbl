@@ -34,7 +34,7 @@ type IPHash struct {
 	BaseBalancer
 }
 
-func NewIPHash(hosts []string) Balancer {
+func NewIPHash(hosts []string, _ []int) Balancer {
 	return &IPHash{
 		BaseBalancer{
 			hosts: hosts,
