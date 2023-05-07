@@ -26,13 +26,14 @@ var ConnectionTimeout = 3 * time.Second
 
 // HTTPProxy refers to a reverse proxy in the balancer
 type HTTPProxy struct {
-	hostMap      map[string]*httputil.ReverseProxy
-	lb           balancer.Balancer
-	sync.RWMutex // protect alive
-	alive        map[string]bool
+	hostMap       map[string]*httputil.ReverseProxy
+	hostWeightMap map[string]int
+	lb            balancer.Balancer
+	sync.RWMutex  // protect alive
+	alive         map[string]bool
 }
 
-// GetIP get client IP
+// GetClientIP get client IP
 func GetClientIP(r *http.Request) string {
 	clientIP, _, _ := net.SplitHostPort(r.RemoteAddr)
 	if len(r.Header.Get(XForwardedFor)) != 0 {
@@ -78,13 +79,14 @@ func IsBackendAlive(host string) bool {
 }
 
 // NewHTTPProxy create new reverse proxy with url and balancer algorithm
-func NewHTTPProxy(targetHosts []string, algorithm string) (*HTTPProxy, error) {
+func NewHTTPProxy(targetHosts []string, algorithm string, hostsWeights []int) (*HTTPProxy, error) {
 	hosts := make([]string, 0)
 	hostMap := make(map[string]*httputil.ReverseProxy)
+	hostWeightMap := make(map[string]int)
 	alive := make(map[string]bool)
 
 	for i, targetHost := range targetHosts {
-		log.Printf("TargetHost[%d]: %s\n", i, targetHost)
+		// log.Printf("TargetHost[%d]: %s\n", i, targetHost)
 		parseUrl, err := url.Parse(targetHost)
 		if err != nil {
 			log.Printf("url.Parse Error: %s\n", err)
@@ -104,17 +106,25 @@ func NewHTTPProxy(targetHosts []string, algorithm string) (*HTTPProxy, error) {
 		alive[host] = true    // mark current host is alive
 		hostMap[host] = proxy // add mapping
 		hosts = append(hosts, host)
+		if len(hostsWeights) == len(hosts) {
+			hostWeightMap[host] = hostsWeights[i]
+		}
 	}
 	// build a load balancer instance
-	lb, err := balancer.Build(algorithm, hosts)
+	lb, err := balancer.Build(algorithm, hosts, hostsWeights)
 	if err != nil {
 		return nil, err
 	}
+	if lb == nil {
+		log.Printf("Load balancer is nil, please check the configuration....")
+		return nil, nil
+	}
 
 	return &HTTPProxy{
-		hostMap: hostMap,
-		lb:      lb,
-		alive:   alive,
+		hostMap:       hostMap,
+		hostWeightMap: hostWeightMap,
+		lb:            lb,
+		alive:         alive,
 	}, nil
 }
 
@@ -132,8 +142,10 @@ func (h *HTTPProxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		w.WriteHeader(http.StatusBadGateway)
 		_, _ = w.Write([]byte(fmt.Sprintf("balance error: %s", err.Error())))
+		log.Printf("Balancer Error: %s\n", err.Error())
 		return
 	}
+	log.Printf("Selected Host = %s\n", host)
 
 	h.lb.Inc(host)
 	defer h.lb.Done(host)
@@ -173,7 +185,7 @@ func (h *HTTPProxy) healthCheck(host string, interval uint) {
 			log.Printf("Site reachable, add %s to load balancer.", host)
 
 			h.SetAlive(host, true)
-			h.lb.Add(host)
+			h.lb.Add(host, h.hostWeightMap[host])
 		}
 	}
 }

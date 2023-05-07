@@ -31,7 +31,7 @@ type BaseBalancer struct {
 }
 
 // Add new host to the balancer
-func (b *BaseBalancer) Add(host string) {
+func (b *BaseBalancer) Add(host string, _ int) {
 	b.Lock()
 	defer b.Unlock()
 	for _, h := range b.hosts {

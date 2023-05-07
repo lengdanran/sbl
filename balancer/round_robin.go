@@ -14,44 +14,48 @@ See the License for the specific language governing permissions and
 limitations under the License.
 
     @author: lengdanran
-    @date: 2023/5/7 15:26
+    @date: 2023/5/7 19:40
     @note: --
 **/
 
 package balancer
 
 import (
-	"math/rand"
-	"time"
+	"log"
+	"math"
 )
 
-// init will add random balancer into balancer factories
+// init will add RoundRobin balancer into balancer factories
 func init() {
-	factories[RandomBalancer] = NewRandom
+	factories[R2Balancer] = NewRoundRobin
 }
 
-// Random will randomly select a http server from the server
-type Random struct {
+type RoundRobin struct {
 	BaseBalancer
-	rnd *rand.Rand
+	cnt int64
 }
 
-// NewRandom will return a random balancer
-func NewRandom(hosts []string, _ []int) Balancer {
-	return &Random{
+// NewRoundRobin will create RoundRobin balancer.
+func NewRoundRobin(hosts []string, _ []int) Balancer {
+	return &RoundRobin{
 		BaseBalancer: BaseBalancer{
 			hosts: hosts,
 		},
-		rnd: rand.New(rand.NewSource(time.Now().UnixNano())), // Random seed with current unix time
+		cnt: 0,
 	}
 }
 
-// Balance selects a suitable host according
-func (r *Random) Balance(_ string) (string, error) {
+func (r *RoundRobin) Balance(_ string) (string, error) {
+	log.Printf("RoundRobin Balancer, Current Cnt=%d\n", r.cnt)
 	r.RLock()
 	defer r.RUnlock()
 	if len(r.hosts) == 0 {
 		return "", NoHostError
 	}
-	return r.hosts[r.rnd.Intn(len(r.hosts))], nil
+	if r.cnt == math.MaxInt64 {
+		r.cnt = 0
+	}
+	selectedHost := r.hosts[r.cnt%int64(len(r.hosts))]
+	r.cnt += 1
+	return selectedHost, nil
 }

@@ -11,7 +11,7 @@ var (
 
 // Balancer interface is the load balancer for the reverse proxy
 type Balancer interface {
-	Add(string)
+	Add(string, int)
 	Remove(string)
 	Balance(string) (string, error)
 	Inc(string)
@@ -20,12 +20,12 @@ type Balancer interface {
 
 // Factory is the factory that generates Balancer,
 // and the factory design pattern is used here
-type Factory func([]string) Balancer
+type Factory func([]string, []int) Balancer
 
 var factories = make(map[string]Factory)
 
 // Build generates the corresponding Balancer according to the algorithm
-func Build(algorithm string, hosts []string) (Balancer, error) {
+func Build(algorithm string, hosts []string, hostsWeights []int) (Balancer, error) {
 	if len(hosts) == 0 {
 		return nil, NoHostError
 	}
@@ -33,5 +33,5 @@ func Build(algorithm string, hosts []string) (Balancer, error) {
 	if !ok {
 		return nil, AlgorithmNotSupportedError
 	}
-	return balancerBuilder(hosts), nil
+	return balancerBuilder(hosts, hostsWeights), nil
 }

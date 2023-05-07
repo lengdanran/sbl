@@ -50,9 +50,13 @@ func main() {
 	// 2. make routers for locations
 	router := mux.NewRouter()
 	for _, l := range config.Location {
-		httpProxy, err := proxy.NewHTTPProxy(l.ProxyPass, l.BalanceMode)
+		httpProxy, err := proxy.NewHTTPProxy(l.ProxyPass, l.BalanceMode, l.ProxyPassWeight)
 		if err != nil {
 			log.Fatalf("create proxy error: %s", err)
+		}
+		if httpProxy == nil {
+			log.Printf("Init httpProxy failed....Skip this location %v\n", l)
+			continue
 		}
 		// start health check
 		if config.HealthCheck {
