@@ -83,8 +83,8 @@ func NewHTTPProxy(targetHosts []string, algorithm string) (*HTTPProxy, error) {
 	hostMap := make(map[string]*httputil.ReverseProxy)
 	alive := make(map[string]bool)
 
-	for i, targetHost := range targetHosts {
-		log.Printf("TargetHost[%d]: %s\n", i, targetHost)
+	for _, targetHost := range targetHosts {
+		// log.Printf("TargetHost[%d]: %s\n", i, targetHost)
 		parseUrl, err := url.Parse(targetHost)
 		if err != nil {
 			log.Printf("url.Parse Error: %s\n", err)
