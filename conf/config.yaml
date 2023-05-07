@@ -24,4 +24,4 @@ location:                     # route matching for reverse proxy
     - "http://192.168.1.2:1015"
     - "https://192.168.1.2"
     - "http://my-server.com"
-    balance_mode: round-robin     # load balancing algorithm
+    balance_mode: random     # load balancing algorithm

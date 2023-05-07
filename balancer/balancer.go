@@ -26,9 +26,12 @@ var factories = make(map[string]Factory)
 
 // Build generates the corresponding Balancer according to the algorithm
 func Build(algorithm string, hosts []string) (Balancer, error) {
-	factory, ok := factories[algorithm]
+	if len(hosts) == 0 {
+		return nil, NoHostError
+	}
+	balancerBuilder, ok := factories[algorithm]
 	if !ok {
 		return nil, AlgorithmNotSupportedError
 	}
-	return factory(hosts), nil
+	return balancerBuilder(hosts), nil
 }

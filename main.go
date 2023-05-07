@@ -47,6 +47,7 @@ func main() {
 		log.Printf("Read configuration from %s failed, exit....", CONF_FILE)
 		return
 	}
+	// 2. make routers for locations
 	router := mux.NewRouter()
 	for _, l := range config.Location {
 		httpProxy, err := proxy.NewHTTPProxy(l.ProxyPass, l.BalanceMode)
@@ -67,7 +68,8 @@ func main() {
 		Handler: router,
 	}
 
-	// listen and serve
+	// 3. listen and serve
+	log.Printf("Serve Schema = %s\n", config.Schema)
 	if config.Schema == "http" {
 		err := svr.ListenAndServe()
 		if err != nil {
