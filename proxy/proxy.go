@@ -32,7 +32,7 @@ type HTTPProxy struct {
 	alive        map[string]bool
 }
 
-// GetIP get client IP
+// GetClientIP get client IP
 func GetClientIP(r *http.Request) string {
 	clientIP, _, _ := net.SplitHostPort(r.RemoteAddr)
 	if len(r.Header.Get(XForwardedFor)) != 0 {
@@ -132,8 +132,10 @@ func (h *HTTPProxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		w.WriteHeader(http.StatusBadGateway)
 		_, _ = w.Write([]byte(fmt.Sprintf("balance error: %s", err.Error())))
+		log.Printf("Balancer Error: %s\n", err.Error())
 		return
 	}
+	log.Printf("Selected Host = %s\n", host)
 
 	h.lb.Inc(host)
 	defer h.lb.Done(host)
